@@ -142,6 +142,15 @@ class _PartyHomePageState extends State<PartyHomePage> {
   bool _running = false;
   final _textController = TextEditingController();
 
+  static const _sosOptions = [
+    ('Lost', 'I\'m lost — please find me'),
+    ('Help', 'I need help'),
+    ('Medical', 'Medical emergency'),
+    ('Uncomfortable', 'I feel unsafe / uncomfortable'),
+    ('Meet up', 'Can we meet up?'),
+    ('Phone dying', 'My phone is dying'),
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -151,7 +160,7 @@ class _PartyHomePageState extends State<PartyHomePage> {
     _messageSub = _mesh.onMessage.listen((msg) {
       setState(() => _messages.insert(0, msg));
       if (msg.type == MessageType.sos) {
-        _triggerSosAlert(msg.senderName);
+        _triggerSosAlert(msg.senderName, msg.payload);
       }
     });
     _nodeSub = _mesh.onNodeChanged.listen((_) => setState(() {}));
@@ -169,13 +178,11 @@ class _PartyHomePageState extends State<PartyHomePage> {
     ].request();
   }
 
-  Future<void> _triggerSosAlert(String fromName) async {
-    // Strong vibration pattern
+  Future<void> _triggerSosAlert(String fromName, String reason) async {
     if (await Vibration.hasVibrator() ?? false) {
       Vibration.vibrate(pattern: [0, 500, 200, 500, 200, 800], intensities: [0, 255, 0, 255, 0, 255]);
     }
 
-    // Loud alarm (tries to play even on silent)
     try {
       await _alarmPlayer.setAudioContext(AudioContext(
         android: AudioContextAndroid(
@@ -192,9 +199,9 @@ class _PartyHomePageState extends State<PartyHomePage> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('SOS from $fromName!'),
+          content: Text('SOS from $fromName: $reason'),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 8),
+          duration: const Duration(seconds: 10),
         ),
       );
     }
@@ -263,14 +270,52 @@ class _PartyHomePageState extends State<PartyHomePage> {
     return '${(meters / 1000).toStringAsFixed(1)} km';
   }
 
-  Future<void> _sendSos() async {
+  void _showSosOptions() {
     if (!_running || _myPosition == null) return;
-    await _mesh.sendSos(latitude: _myPosition!.latitude, longitude: _myPosition!.longitude);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('SOS sent to the party'), backgroundColor: Colors.red),
-      );
-    }
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1A221C),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Send SOS',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.redAccent),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              ..._sosOptions.map((opt) => ListTile(
+                    title: Text(opt.$1, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    subtitle: Text(opt.$2),
+                    onTap: () async {
+                      Navigator.pop(ctx);
+                      await _mesh.sendSos(
+                        latitude: _myPosition!.latitude,
+                        longitude: _myPosition!.longitude,
+                      );
+                      await _mesh.sendText('SOS: ${opt.$2}');
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('SOS sent: ${opt.$1}'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    },
+                  )),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _sendText() async {
@@ -376,7 +421,7 @@ class _PartyHomePageState extends State<PartyHomePage> {
                       itemCount: _messages.length,
                       itemBuilder: (context, i) {
                         final m = _messages[i];
-                        final isSos = m.type == MessageType.sos;
+                        final isSos = m.type == MessageType.sos || m.payload.startsWith('SOS:');
                         return ListTile(
                           leading: Icon(
                             isSos ? Icons.warning_amber_rounded : Icons.chat_bubble_outline,
@@ -425,7 +470,7 @@ class _PartyHomePageState extends State<PartyHomePage> {
                     IconButton.filled(
                       style: IconButton.styleFrom(backgroundColor: Colors.redAccent),
                       icon: const Icon(Icons.sos),
-                      onPressed: _sendSos,
+                      onPressed: _showSosOptions,
                     ),
                   ],
                 ),
