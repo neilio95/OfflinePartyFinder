@@ -32,9 +32,7 @@ class PartyHomePage extends StatefulWidget {
 }
 
 class _PartyHomePageState extends State<PartyHomePage> {
-  final MeshNetwork _mesh = MeshNetwork(
-    config: const MeshConfig(serviceName: 'OfflinePartyFinder'),
-  );
+  late final MeshNetwork _mesh;
 
   final List<MeshMessage> _messages = [];
   StreamSubscription<MeshMessage>? _messageSub;
@@ -45,6 +43,9 @@ class _PartyHomePageState extends State<PartyHomePage> {
   @override
   void initState() {
     super.initState();
+    _mesh = MeshNetwork(
+      config: MeshConfig(serviceName: 'OfflinePartyFinder'),
+    );
     _requestPermissions();
     _messageSub = _mesh.onMessage.listen((msg) {
       setState(() => _messages.insert(0, msg));
@@ -91,16 +92,6 @@ class _PartyHomePageState extends State<PartyHomePage> {
   Future<void> _sendSos() async {
     if (!_running || _myPosition == null) return;
     await _mesh.sendSos(latitude: _myPosition!.latitude, longitude: _myPosition!.longitude);
-    setState(() => _messages.insert(0, MeshMessage(
-      id: 'sos-${DateTime.now().millisecondsSinceEpoch}',
-      senderId: 'me',
-      senderName: 'You',
-      type: MessageType.sos,
-      priority: MessagePriority.high,
-      payload: 'SOS',
-      createdAt: DateTime.now(),
-      expiresAt: DateTime.now().add(const Duration(hours: 1)),
-    )));
   }
 
   Future<void> _sendText(String text) async {
