@@ -208,6 +208,25 @@ class _PartyHomePageState extends State<PartyHomePage> {
     );
   }
 
+  double? _bearingTo(MeshNode node) {
+    if (_myPosition == null || node.latitude == null || node.longitude == null) return null;
+    final lat1 = _myPosition!.latitude * math.pi / 180;
+    final lon1 = _myPosition!.longitude * math.pi / 180;
+    final lat2 = node.latitude! * math.pi / 180;
+    final lon2 = node.longitude! * math.pi / 180;
+    final dLon = lon2 - lon1;
+    final y = math.sin(dLon) * math.cos(lat2);
+    final x = math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(lat2) * math.cos(dLon);
+    return (math.atan2(y, x) * 180 / math.pi + 360) % 360;
+  }
+
+  String _cardinal(double? bearing) {
+    if (bearing == null) return '';
+    const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    final idx = ((bearing + 22.5) / 45).floor() % 8;
+    return dirs[idx];
+  }
+
   String _formatDistance(double? meters) {
     if (meters == null) return '—';
     if (meters < 1000) return '${meters.round()} m';
@@ -252,7 +271,7 @@ class _PartyHomePageState extends State<PartyHomePage> {
           children: [
             const Text('Party Finder'),
             Text(
-              'Code: ${widget.partyCode}  •  ${peers.length} nearby',
+              'Code: ${widget.partyCode}  •  ${peers.length} in party',
               style: const TextStyle(fontSize: 12, color: Color(0xFFEFE8D8)),
             ),
           ],
@@ -290,7 +309,12 @@ class _PartyHomePageState extends State<PartyHomePage> {
                       itemBuilder: (context, i) {
                         final p = peers[i];
                         final dist = _distanceTo(p);
+                        final bearing = _bearingTo(p);
                         final isActive = p.status == NodeStatus.active;
+                        final dir = _cardinal(bearing);
+                        final subtitle = isActive
+                            ? _formatDistance(dist)
+                            : 'Last seen ${_formatDistance(dist)}${dir.isNotEmpty ? ' • $dir' : ''}';
                         return Card(
                           margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           color: const Color(0xFF1A221C),
@@ -303,12 +327,14 @@ class _PartyHomePageState extends State<PartyHomePage> {
                               ),
                             ),
                             title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                            subtitle: Text(_formatDistance(dist)),
-                            trailing: Icon(
-                              isActive ? Icons.circle : Icons.circle_outlined,
-                              color: isActive ? Colors.greenAccent : Colors.grey,
-                              size: 16,
-                            ),
+                            subtitle: Text(subtitle),
+                            trailing: isActive
+                                ? const Icon(Icons.circle, color: Colors.greenAccent, size: 16)
+                                : Icon(
+                                    Icons.navigation,
+                                    color: Colors.grey,
+                                    size: 20,
+                                  ),
                           ),
                         );
                       },
