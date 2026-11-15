@@ -8,12 +8,15 @@ workflows:
       xcode: latest
       cocoapods: default
     scripts:
+      - name: Generate iOS platform
+        script: |
+          flutter create --platforms=ios .
       - name: Get Flutter packages
         script: |
           flutter packages pub get
       - name: Install pods
         script: |
-          find . -name "Podfile" -execdir pod install \;
+          cd ios && pod install
       - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
