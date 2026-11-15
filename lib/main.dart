@@ -263,97 +263,105 @@ class _PartyHomePageState extends State<PartyHomePage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            flex: 2,
-            child: peers.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No one nearby yet\nStart the mesh and stay close',
-                      textAlign: TextAlign.center,
-                    ),
-                  )
-                : ListView.builder(
-                    itemCount: peers.length,
-                    itemBuilder: (context, i) {
-                      final p = peers[i];
-                      final dist = _distanceTo(p);
-                      final isActive = p.status == NodeStatus.active;
-                      return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        color: const Color(0xFF1A221C),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: copper,
-                            child: Text(
-                              p.name.isNotEmpty ? p.name[0].toUpperCase() : '?',
-                              style: const TextStyle(color: Color(0xFF101614), fontWeight: FontWeight.bold),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              flex: 2,
+              child: peers.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No one nearby yet\nStart the mesh and stay close',
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: peers.length,
+                      itemBuilder: (context, i) {
+                        final p = peers[i];
+                        final dist = _distanceTo(p);
+                        final isActive = p.status == NodeStatus.active;
+                        return Card(
+                          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          color: const Color(0xFF1A221C),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: copper,
+                              child: Text(
+                                p.name.isNotEmpty ? p.name[0].toUpperCase() : '?',
+                                style: const TextStyle(color: Color(0xFF101614), fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            subtitle: Text(_formatDistance(dist)),
+                            trailing: Icon(
+                              isActive ? Icons.circle : Icons.circle_outlined,
+                              color: isActive ? Colors.greenAccent : Colors.grey,
+                              size: 16,
                             ),
                           ),
-                          title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                          subtitle: Text(_formatDistance(dist)),
-                          trailing: Icon(
-                            isActive ? Icons.circle : Icons.circle_outlined,
-                            color: isActive ? Colors.greenAccent : Colors.grey,
-                            size: 16,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            flex: 1,
-            child: _messages.isEmpty
-                ? const Center(child: Text('No messages yet'))
-                : ListView.builder(
-                    itemCount: _messages.length,
-                    itemBuilder: (context, i) {
-                      final m = _messages[i];
-                      final isSos = m.type == MessageType.sos;
-                      return ListTile(
-                        leading: Icon(
-                          isSos ? Icons.warning_amber_rounded : Icons.chat_bubble_outline,
-                          color: isSos ? Colors.redAccent : copper,
-                        ),
-                        title: Text(
-                          m.payload,
-                          style: TextStyle(color: isSos ? Colors.redAccent : null, fontWeight: isSos ? FontWeight.bold : null),
-                        ),
-                        subtitle: Text(m.senderName),
-                      );
-                    },
-                  ),
-          ),
-          Container(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 16),
-            color: const Color(0xFF101614),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _textController,
-                    decoration: InputDecoration(
-                      hintText: 'Message the party',
-                      filled: true,
-                      fillColor: const Color(0xFF1A221C),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+                        );
+                      },
                     ),
-                    onSubmitted: _sendText,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                IconButton.filled(
-                  style: IconButton.styleFrom(backgroundColor: Colors.redAccent),
-                  icon: const Icon(Icons.sos),
-                  onPressed: _sendSos,
-                ),
-              ],
             ),
-          ),
-        ],
+            const Divider(height: 1),
+            Expanded(
+              flex: 1,
+              child: _messages.isEmpty
+                  ? const Center(child: Text('No messages yet'))
+                  : ListView.builder(
+                      itemCount: _messages.length,
+                      itemBuilder: (context, i) {
+                        final m = _messages[i];
+                        final isSos = m.type == MessageType.sos;
+                        return ListTile(
+                          leading: Icon(
+                            isSos ? Icons.warning_amber_rounded : Icons.chat_bubble_outline,
+                            color: isSos ? Colors.redAccent : copper,
+                          ),
+                          title: Text(
+                            m.senderName,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(
+                            m.payload,
+                            style: TextStyle(
+                              color: isSos ? Colors.redAccent : null,
+                              fontWeight: isSos ? FontWeight.bold : null,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              color: const Color(0xFF101614),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _textController,
+                      decoration: InputDecoration(
+                        hintText: 'Message the party',
+                        filled: true,
+                        fillColor: const Color(0xFF1A221C),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+                      ),
+                      onSubmitted: _sendText,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton.filled(
+                    style: IconButton.styleFrom(backgroundColor: Colors.redAccent),
+                    icon: const Icon(Icons.sos),
+                    onPressed: _sendSos,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
