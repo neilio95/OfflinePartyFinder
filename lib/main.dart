@@ -159,7 +159,7 @@ class _PartyHomePageState extends State<PartyHomePage> {
     _requestPermissions();
     _messageSub = _mesh.onMessage.listen((msg) {
       setState(() => _messages.insert(0, msg));
-      if (msg.type == MessageType.sos) {
+      if (msg.type == MessageType.sos || msg.payload.startsWith('SOS:')) {
         _triggerSosAlert(msg.senderName, msg.payload);
       }
     });
@@ -193,7 +193,7 @@ class _PartyHomePageState extends State<PartyHomePage> {
           audioFocus: AndroidAudioFocus.gain,
         ),
       ));
-      await _alarmPlayer.play(UrlSource('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg'));
+      await _alarmPlayer.play(AssetSource('alarm.ogg'));
     } catch (_) {}
 
     if (mounted) {
