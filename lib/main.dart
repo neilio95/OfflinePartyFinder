@@ -224,7 +224,8 @@ class _PartyHomePageState extends State<PartyHomePage> {
     }
   }
 
-  Future<void> _sendText(String text) async {
+  Future<void> _sendText() async {
+    final text = _textController.text;
     if (!_running || text.trim().isEmpty) return;
     await _mesh.sendText(text);
     _textController.clear();
@@ -257,9 +258,16 @@ class _PartyHomePageState extends State<PartyHomePage> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: Icon(_running ? Icons.stop_circle : Icons.play_circle, color: copper, size: 32),
-            onPressed: _toggleMesh,
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilledButton(
+              onPressed: _toggleMesh,
+              style: FilledButton.styleFrom(
+                backgroundColor: _running ? Colors.redAccent : copper,
+                foregroundColor: const Color(0xFF101614),
+              ),
+              child: Text(_running ? 'Stop' : 'Start Party'),
+            ),
           ),
         ],
       ),
@@ -269,9 +277,11 @@ class _PartyHomePageState extends State<PartyHomePage> {
             Expanded(
               flex: 2,
               child: peers.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
-                        'No one nearby yet\nStart the mesh and stay close',
+                        _running
+                            ? 'Searching for nearby party members...\nStay close'
+                            : 'Tap Start Party to find people nearby',
                         textAlign: TextAlign.center,
                       ),
                     )
@@ -334,32 +344,39 @@ class _PartyHomePageState extends State<PartyHomePage> {
                       },
                     ),
             ),
-            Container(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-              color: const Color(0xFF101614),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      decoration: InputDecoration(
-                        hintText: 'Message the party',
-                        filled: true,
-                        fillColor: const Color(0xFF1A221C),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+            if (_running)
+              Container(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                color: const Color(0xFF101614),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _textController,
+                        decoration: InputDecoration(
+                          hintText: 'Message the party',
+                          filled: true,
+                          fillColor: const Color(0xFF1A221C),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(24)),
+                        ),
+                        onSubmitted: (_) => _sendText(),
                       ),
-                      onSubmitted: _sendText,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton.filled(
-                    style: IconButton.styleFrom(backgroundColor: Colors.redAccent),
-                    icon: const Icon(Icons.sos),
-                    onPressed: _sendSos,
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    IconButton.filled(
+                      style: IconButton.styleFrom(backgroundColor: copper),
+                      icon: const Icon(Icons.send, color: Color(0xFF101614)),
+                      onPressed: _sendText,
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton.filled(
+                      style: IconButton.styleFrom(backgroundColor: Colors.redAccent),
+                      icon: const Icon(Icons.sos),
+                      onPressed: _sendSos,
+                    ),
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),
