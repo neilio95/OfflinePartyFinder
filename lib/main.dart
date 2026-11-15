@@ -249,7 +249,7 @@ class _PartyHomePageState extends State<PartyHomePage> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(_running ? 'Party Finder' : 'Party Finder'),
+            const Text('Party Finder'),
             Text(
               'Code: ${widget.partyCode}  •  ${peers.length} nearby',
               style: const TextStyle(fontSize: 12, color: Color(0xFFEFE8D8)),
@@ -279,6 +279,7 @@ class _PartyHomePageState extends State<PartyHomePage> {
                     itemBuilder: (context, i) {
                       final p = peers[i];
                       final dist = _distanceTo(p);
+                      final isActive = p.status == NodeStatus.active;
                       return Card(
                         margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         color: const Color(0xFF1A221C),
@@ -293,8 +294,8 @@ class _PartyHomePageState extends State<PartyHomePage> {
                           title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600)),
                           subtitle: Text(_formatDistance(dist)),
                           trailing: Icon(
-                            p.status == NodeStatus.online ? Icons.circle : Icons.circle_outlined,
-                            color: p.status == NodeStatus.online ? Colors.greenAccent : Colors.grey,
+                            isActive ? Icons.circle : Icons.circle_outlined,
+                            color: isActive ? Colors.greenAccent : Colors.grey,
                             size: 16,
                           ),
                         ),
@@ -321,7 +322,7 @@ class _PartyHomePageState extends State<PartyHomePage> {
                           m.payload,
                           style: TextStyle(color: isSos ? Colors.redAccent : null, fontWeight: isSos ? FontWeight.bold : null),
                         ),
-                        subtitle: Text('${m.senderName}'),
+                        subtitle: Text(m.senderName),
                       );
                     },
                   ),
