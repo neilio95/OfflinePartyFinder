@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_mesh_network/flutter_mesh_network.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:vibration/vibration.dart';
 
 void main() {
   runApp(const OfflinePartyFinderApp());
@@ -131,6 +133,7 @@ class PartyHomePage extends StatefulWidget {
 
 class _PartyHomePageState extends State<PartyHomePage> {
   late final MeshNetwork _mesh;
+  final AudioPlayer _alarmPlayer = AudioPlayer();
 
   final List<MeshMessage> _messages = [];
   StreamSubscription<MeshMessage>? _messageSub;
@@ -148,12 +151,7 @@ class _PartyHomePageState extends State<PartyHomePage> {
     _messageSub = _mesh.onMessage.listen((msg) {
       setState(() => _messages.insert(0, msg));
       if (msg.type == MessageType.sos) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('SOS from ${msg.senderName}!'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _triggerSosAlert(msg.senderName);
       }
     });
     _nodeSub = _mesh.onNodeChanged.listen((_) => setState(() {}));
@@ -167,7 +165,39 @@ class _PartyHomePageState extends State<PartyHomePage> {
       Permission.bluetoothConnect,
       Permission.location,
       Permission.locationWhenInUse,
+      Permission.notification,
     ].request();
+  }
+
+  Future<void> _triggerSosAlert(String fromName) async {
+    // Strong vibration pattern
+    if (await Vibration.hasVibrator() ?? false) {
+      Vibration.vibrate(pattern: [0, 500, 200, 500, 200, 800], intensities: [0, 255, 0, 255, 0, 255]);
+    }
+
+    // Loud alarm (tries to play even on silent)
+    try {
+      await _alarmPlayer.setAudioContext(AudioContext(
+        android: AudioContextAndroid(
+          isSpeakerphoneOn: true,
+          stayAwake: true,
+          contentType: AndroidContentType.sonification,
+          usageType: AndroidUsageType.alarm,
+          audioFocus: AndroidAudioFocus.gain,
+        ),
+      ));
+      await _alarmPlayer.play(UrlSource('https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg'));
+    } catch (_) {}
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('SOS from $fromName!'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 8),
+        ),
+      );
+    }
   }
 
   Future<void> _toggleMesh() async {
@@ -255,6 +285,7 @@ class _PartyHomePageState extends State<PartyHomePage> {
     _messageSub?.cancel();
     _nodeSub?.cancel();
     _textController.dispose();
+    _alarmPlayer.dispose();
     _mesh.dispose();
     super.dispose();
   }
@@ -330,11 +361,7 @@ class _PartyHomePageState extends State<PartyHomePage> {
                             subtitle: Text(subtitle),
                             trailing: isActive
                                 ? const Icon(Icons.circle, color: Colors.greenAccent, size: 16)
-                                : Icon(
-                                    Icons.navigation,
-                                    color: Colors.grey,
-                                    size: 20,
-                                  ),
+                                : const Icon(Icons.navigation, color: Colors.grey, size: 20),
                           ),
                         );
                       },
