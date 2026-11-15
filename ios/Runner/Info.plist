@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Offlinepartfinder</string>
+	<string>Party Finder</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -26,6 +26,20 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Party Finder uses Bluetooth to find and chat with nearby friends offline at festivals.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Party Finder uses Bluetooth to find and chat with nearby friends offline at festivals.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Party Finder uses your location to show distance and direction to nearby party members.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Party Finder uses your location to show distance and direction to nearby party members, even when the app is in the background.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>bluetooth-central</string>
+		<string>bluetooth-peripheral</string>
+		<string>location</string>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
