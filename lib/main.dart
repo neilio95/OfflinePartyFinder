@@ -32,11 +32,13 @@ class PartyHomePage extends StatefulWidget {
 }
 
 class _PartyHomePageState extends State<PartyHomePage> {
-  final MeshNetwork _mesh = MeshNetwork();
-  final List<MeshPeer> _peers = [];
-  final List<String> _chat = [];
-  StreamSubscription? _peerSub;
-  StreamSubscription? _msgSub;
+  final MeshNetwork _mesh = MeshNetwork(
+    config: const MeshConfig(serviceName: 'OfflinePartyFinder'),
+  );
+
+  final List<MeshMessage> _messages = [];
+  StreamSubscription<MeshMessage>? _messageSub;
+  StreamSubscription<MeshNode>? _nodeSub;
   Position? _myPosition;
   bool _running = false;
 
@@ -44,6 +46,10 @@ class _PartyHomePageState extends State<PartyHomePage> {
   void initState() {
     super.initState();
     _requestPermissions();
+    _messageSub = _mesh.onMessage.listen((msg) {
+      setState(() => _messages.insert(0, msg));
+    });
+    _nodeSub = _mesh.onNodeChanged.listen((_) => setState(() {}));
   }
 
   Future<void> _requestPermissions() async {
@@ -57,26 +63,20 @@ class _PartyHomePageState extends State<PartyHomePage> {
     ].request();
   }
 
-  Future<void> _startMesh() async {
-    if (_running) return;
-    setState(() => _running = true);
-
-    await _mesh.start(
-      serviceName: 'OfflinePartyFinder',
-      onPeerFound: (peer) {
-        setState(() {
-          if (!_peers.any((p) => p.id == peer.id)) _peers.add(peer);
-        });
-      },
-      onPeerLost: (peer) {
-        setState(() => _peers.removeWhere((p) => p.id == peer.id));
-      },
-      onMessage: (from, message) {
-        setState(() => _chat.add('${from.displayName}: $message'));
-      },
-    );
-
-    _startLocationUpdates();
+  Future<void> _toggleMesh() async {
+    try {
+      if (_running) {
+        await _mesh.stop();
+      } else {
+        await _mesh.start(userId: 'user-${DateTime.now().millisecondsSinceEpoch}', userName: 'You');
+        _startLocationUpdates();
+      }
+      setState(() => _running = _mesh.isRunning);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Mesh error: $e')));
+      }
+    }
   }
 
   Future<void> _startLocationUpdates() async {
@@ -84,38 +84,48 @@ class _PartyHomePageState extends State<PartyHomePage> {
     _myPosition = await loc.getCurrentPosition();
     loc.getPositionStream().listen((pos) {
       _myPosition = pos;
-      _mesh.broadcastLocation(pos.latitude, pos.longitude);
+      _mesh.broadcastLocation(latitude: pos.latitude, longitude: pos.longitude);
     });
   }
 
-  void _sendSos() {
-    _mesh.sendSos('SOS — need help');
-    setState(() => _chat.add('You: SOS sent'));
+  Future<void> _sendSos() async {
+    if (!_running || _myPosition == null) return;
+    await _mesh.sendSos(latitude: _myPosition!.latitude, longitude: _myPosition!.longitude);
+    setState(() => _messages.insert(0, MeshMessage(
+      id: 'sos-${DateTime.now().millisecondsSinceEpoch}',
+      senderId: 'me',
+      senderName: 'You',
+      type: MessageType.sos,
+      priority: MessagePriority.high,
+      payload: 'SOS',
+      createdAt: DateTime.now(),
+      expiresAt: DateTime.now().add(const Duration(hours: 1)),
+    )));
   }
 
-  void _sendChat(String text) {
-    if (text.trim().isEmpty) return;
-    _mesh.sendText(text);
-    setState(() => _chat.add('You: $text'));
+  Future<void> _sendText(String text) async {
+    if (!_running || text.trim().isEmpty) return;
+    await _mesh.sendText(text);
   }
 
   @override
   void dispose() {
-    _peerSub?.cancel();
-    _msgSub?.cancel();
-    _mesh.stop();
+    _messageSub?.cancel();
+    _nodeSub?.cancel();
+    _mesh.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final peers = _mesh.knownNodes.values.toList();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Party Finder'),
+        title: Text(_running ? 'Party Finder (${_mesh.onlineNodeCount} peers)' : 'Party Finder'),
         actions: [
           IconButton(
             icon: Icon(_running ? Icons.stop : Icons.play_arrow),
-            onPressed: _running ? () => _mesh.stop() : _startMesh,
+            onPressed: _toggleMesh,
           ),
         ],
       ),
@@ -130,26 +140,38 @@ class _PartyHomePageState extends State<PartyHomePage> {
             ),
           Expanded(
             flex: 2,
-            child: ListView.builder(
-              itemCount: _peers.length,
-              itemBuilder: (context, i) {
-                final p = _peers[i];
-                return ListTile(
-                  title: Text(p.displayName),
-                  subtitle: Text(p.distanceMeters != null
-                      ? '${p.distanceMeters!.toStringAsFixed(0)} m'
-                      : 'nearby'),
-                );
-              },
-            ),
+            child: peers.isEmpty
+                ? const Center(child: Text('No peers yet — start mesh and get closer'))
+                : ListView.builder(
+                    itemCount: peers.length,
+                    itemBuilder: (context, i) {
+                      final p = peers[i];
+                      return ListTile(
+                        title: Text(p.name),
+                        subtitle: Text(p.status.name),
+                      );
+                    },
+                  ),
           ),
           const Divider(),
           Expanded(
             flex: 1,
-            child: ListView.builder(
-              itemCount: _chat.length,
-              itemBuilder: (context, i) => ListTile(title: Text(_chat[i])),
-            ),
+            child: _messages.isEmpty
+                ? const Center(child: Text('No messages'))
+                : ListView.builder(
+                    itemCount: _messages.length,
+                    itemBuilder: (context, i) {
+                      final m = _messages[i];
+                      return ListTile(
+                        leading: Icon(
+                          m.type == MessageType.sos ? Icons.warning : Icons.message,
+                          color: m.type == MessageType.sos ? Colors.red : null,
+                        ),
+                        title: Text(m.payload),
+                        subtitle: Text('${m.senderName} • hop ${m.hopCount}'),
+                      );
+                    },
+                  ),
           ),
           Padding(
             padding: const EdgeInsets.all(8),
@@ -158,7 +180,7 @@ class _PartyHomePageState extends State<PartyHomePage> {
                 Expanded(
                   child: TextField(
                     decoration: const InputDecoration(hintText: 'Message'),
-                    onSubmitted: _sendChat,
+                    onSubmitted: _sendText,
                   ),
                 ),
                 IconButton(
