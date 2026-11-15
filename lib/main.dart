@@ -44,7 +44,7 @@ class _PartyHomePageState extends State<PartyHomePage> {
   void initState() {
     super.initState();
     _mesh = MeshNetwork(
-      config: MeshConfig(serviceName: 'OfflinePartyFinder'),
+      config: MeshConfig(serviceName: 'PartyFinder'),
     );
     _requestPermissions();
     _messageSub = _mesh.onMessage.listen((msg) {
