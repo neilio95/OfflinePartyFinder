@@ -227,12 +227,14 @@ class _PartyHomePageState extends State<PartyHomePage> {
   }
 
   Future<void> _startLocationUpdates() async {
-    final loc = GeolocatorPlatform.instance;
-    _myPosition = await loc.getCurrentPosition();
-    loc.getPositionStream().listen((pos) {
-      setState(() => _myPosition = pos);
-      _mesh.broadcastLocation(latitude: pos.latitude, longitude: pos.longitude);
-    });
+    try {
+      final loc = GeolocatorPlatform.instance;
+      _myPosition = await loc.getCurrentPosition();
+      loc.getPositionStream().listen((pos) {
+        setState(() => _myPosition = pos);
+        _mesh.broadcastLocation(latitude: pos.latitude, longitude: pos.longitude);
+      });
+    } catch (_) {}
   }
 
   double? _distanceTo(MeshNode node) {
@@ -271,7 +273,7 @@ class _PartyHomePageState extends State<PartyHomePage> {
   }
 
   void _showSosOptions() {
-    if (!_running || _myPosition == null) return;
+    if (!_running) return;
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1A221C),
@@ -296,10 +298,12 @@ class _PartyHomePageState extends State<PartyHomePage> {
                     subtitle: Text(opt.$2),
                     onTap: () async {
                       Navigator.pop(ctx);
-                      await _mesh.sendSos(
-                        latitude: _myPosition!.latitude,
-                        longitude: _myPosition!.longitude,
-                      );
+                      if (_myPosition != null) {
+                        await _mesh.sendSos(
+                          latitude: _myPosition!.latitude,
+                          longitude: _myPosition!.longitude,
+                        );
+                      }
                       await _mesh.sendText('SOS: ${opt.$2}');
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
