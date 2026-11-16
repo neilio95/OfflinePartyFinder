@@ -56,6 +56,26 @@ class _NameAndCodePageState extends State<NameAndCodePage> {
   final _codeController = TextEditingController(text: 'PARTY');
 
   @override
+  void initState() {
+    super.initState();
+    _requestAllPermissions();
+  }
+
+  Future<void> _requestAllPermissions() async {
+    await [
+      Permission.bluetooth,
+      Permission.bluetoothScan,
+      Permission.bluetoothAdvertise,
+      Permission.bluetoothConnect,
+      Permission.location,
+      Permission.locationWhenInUse,
+      Permission.locationAlways,
+      Permission.notification,
+      Permission.ignoreBatteryOptimizations,
+    ].request();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
@@ -157,7 +177,6 @@ class _PartyHomePageState extends State<PartyHomePage> {
     super.initState();
     final serviceName = 'PF-${widget.partyCode}'.substring(0, math.min(15, 'PF-${widget.partyCode}'.length));
     _mesh = MeshNetwork(config: MeshConfig(serviceName: serviceName));
-    _requestPermissions();
     _messageSub = _mesh.onMessage.listen((msg) {
       setState(() => _messages.insert(0, msg));
       if (msg.type == MessageType.sos || msg.payload.startsWith('SOS:')) {
@@ -165,18 +184,6 @@ class _PartyHomePageState extends State<PartyHomePage> {
       }
     });
     _nodeSub = _mesh.onNodeChanged.listen((_) => setState(() {}));
-  }
-
-  Future<void> _requestPermissions() async {
-    await [
-      Permission.bluetooth,
-      Permission.bluetoothScan,
-      Permission.bluetoothAdvertise,
-      Permission.bluetoothConnect,
-      Permission.location,
-      Permission.locationWhenInUse,
-      Permission.notification,
-    ].request();
   }
 
   Future<void> _triggerSosAlert(String fromName, String reason) async {
