@@ -276,24 +276,30 @@ class _PartyHomePageState extends State<PartyHomePage> {
     if (!_running) return;
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: const Color(0xFF1A221C),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.6,
+        minChildSize: 0.4,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (_, controller) => SafeArea(
           child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Send SOS',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.redAccent),
-                textAlign: TextAlign.center,
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Send SOS',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.redAccent),
+                ),
               ),
-              const SizedBox(height: 12),
-              ..._sosOptions.map((opt) => ListTile(
+              Expanded(
+                child: ListView(
+                  controller: controller,
+                  children: _sosOptions.map((opt) => ListTile(
                     title: Text(opt.$1, style: const TextStyle(fontWeight: FontWeight.w600)),
                     subtitle: Text(opt.$2),
                     onTap: () async {
@@ -314,7 +320,9 @@ class _PartyHomePageState extends State<PartyHomePage> {
                         );
                       }
                     },
-                  )),
+                  )).toList(),
+                ),
+              ),
             ],
           ),
         ),
