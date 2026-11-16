@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:vibration/vibration.dart';
+import 'package:volume_controller/volume_controller.dart';
 
 void main() {
   runApp(const OfflinePartyFinderApp());
@@ -184,6 +185,8 @@ class _PartyHomePageState extends State<PartyHomePage> {
     }
 
     try {
+      await VolumeController.instance.setVolume(1.0);
+      await _alarmPlayer.setVolume(1.0);
       await _alarmPlayer.setAudioContext(AudioContext(
         android: AudioContextAndroid(
           isSpeakerphoneOn: true,
@@ -202,6 +205,8 @@ class _PartyHomePageState extends State<PartyHomePage> {
           content: Text('SOS from $fromName: $reason'),
           backgroundColor: Colors.red,
           duration: const Duration(seconds: 10),
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
         ),
       );
     }
@@ -316,6 +321,8 @@ class _PartyHomePageState extends State<PartyHomePage> {
                           SnackBar(
                             content: Text('SOS sent: ${opt.$1}'),
                             backgroundColor: Colors.red,
+                            behavior: SnackBarBehavior.floating,
+                            margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16),
                           ),
                         );
                       }
